@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Financial Application</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f4f4;
+      }
+      h1 {
+        color: #333;
+      }
+      input,
+      button {
+        margin: 5px 0;
+        padding: 8px;
+        font-size: 14px;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      textarea {
+        width: 100%;
+        height: 100px;
+        margin-top: 10px;
+      }
+      .section {
+        background: white;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Financial Application</h1>
+
+    <!-- Transaction Section -->
+    <div class="section">
+      <h2>Add a Transaction</h2>
+      <input type="date" id="txn-date" />
+      <input type="number" id="txn-amount" placeholder="Amount" min="0" />
+      <input type="text" id="txn-category" placeholder="Category" />
+      <select id="txn-type">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+      <button onclick="addTransactionUI()">Add Transaction</button>
+    </div>
+
+    <!-- Budget Section -->
+    <div class="section">
+      <h2>Set a Budget</h2>
+      <input type="text" id="budget-category" placeholder="Category" />
+      <input type="number" id="budget-amount" placeholder="Amount" min="0" />
+      <select id="budget-period">
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+      <button onclick="setBudgetUI()">Set Budget</button>
+    </div>
+
+    <!-- Savings Goal Section -->
+    <div class="section">
+      <h2>Set a Savings Goal</h2>
+      <input type="number" id="goal-amount" placeholder="Goal Amount" min="0" />
+      <input type="date" id="goal-date" />
+      <input type="text" id="goal-description" placeholder="Description" />
+      <button onclick="setSavingsGoalUI()">Set Savings Goal</button>
+    </div>
+
+    <!-- Output Section -->
+    <div class="section">
+      <h2>Output</h2>
+      <textarea
+        id="output"
+        readonly
+        placeholder="Results will appear here..."
+      ></textarea>
+      <button onclick="showSummary()">Show Summary</button>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+      // Core Data Structures
+      let transactions = [];
+      let budgets = {};
+      let savingsGoals = [];
+
+      // Functions
+      function addTransaction(date, amount, category, type) {
+        transactions.push({ date, amount, category, type });
+      }
+
+      function setBudget(category, amount, period) {
+        budgets[category] = { amount, period };
+      }
+
+      function setSavingsGoal(goalAmount, targetDate, description) {
+        savingsGoals.push({
+          goalAmount,
+          targetDate,
+          description,
+          savedAmount: 0,
+        });
+      }
+
+      function trackBudget() {
+        const spendingByCategory = transactions.reduce((acc, txn) => {
+          if (txn.type === "expense") {
+            acc[txn.category] = (acc[txn.category] || 0) + txn.amount;
+          }
+          return acc;
+        }, {});
+
+        let output = "=== Budget Tracking ===\n";
+        for (const category in budgets) {
+          const spent = spendingByCategory[category] || 0;
+          const { amount } = budgets[category];
+          output +=
+            spent > amount
+              ? `⚠ Overspent on ${category}! Spent: $${spent}, Budget: $${amount}\n`
+              : `✅ On track: ${category}. Spent: $${spent}, Budget: $${amount}\n`;
+        }
+        return output;
+      }
+
+      function trackSavings() {
+        const totalIncome = transactions.reduce((total, txn) => {
+          return txn.type === "income" ? total + txn.amount : total;
+        }, 0);
+
+        const totalExpenses = transactions.reduce((total, txn) => {
+          return txn.type === "expense" ? total + txn.amount : total;
+        }, 0);
+
+        const saved = totalIncome - totalExpenses;
+
+        let output = "=== Savings Goals ===\n";
+        savingsGoals.forEach((goal) => {
+          const status =
+            saved >= goal.goalAmount
+              ? `✅ Goal Achieved: ${goal.description} (Target: $${goal.goalAmount})\n`
+              : `🔄 Goal: ${goal.description} | Saved: $${saved}, Target: $${goal.goalAmount}\n`;
+          output += status;
+        });
+        return output;
+      }
+
+      // UI Handlers
+      function addTransactionUI() {
+        const date = document.getElementById("txn-date").value;
+        const amount = parseFloat(document.getElementById("txn-amount").value);
+        const category = document.getElementById("txn-category").value;
+        const type = document.getElementById("txn-type").value;
+
+        if (!date || isNaN(amount) || amount <= 0 || !category) {
+          displayOutput("Please enter valid transaction details.");
+          return;
+        }
+
+        addTransaction(date, amount, category, type);
+        displayOutput("Transaction added successfully!");
+      }
+
+      function setBudgetUI() {
+        const category = document.getElementById("budget-category").value;
+        const amount = parseFloat(
+          document.getElementById("budget-amount").value
+        );
+        const period = document.getElementById("budget-period").value;
+
+        if (!category || isNaN(amount) || amount <= 0 || !period) {
+          displayOutput("Please enter valid budget details.");
+          return;
+        }
+
+        setBudget(category, amount, period);
+        displayOutput("Budget set successfully!");
+      }
+
+      function setSavingsGoalUI() {
+        const goalAmount = parseFloat(
+          document.getElementById("goal-amount").value
+        );
+        const targetDate = document.getElementById("goal-date").value;
+        const description = document.getElementById("goal-description").value;
+
+        if (!goalAmount || goalAmount <= 0 || !targetDate || !description) {
+          displayOutput("Please enter valid savings goal details.");
+          return;
+        }
+
+        setSavingsGoal(goalAmount, targetDate, description);
+        displayOutput("Savings goal set successfully!");
+      }
+
+      function showSummary() {
+        let output = "";
+        output += trackBudget();
+        output += "\n" + trackSavings();
+        displayOutput(output);
+      }
+
+      function displayOutput(message) {
+        document.getElementById("output").value = message;
+      }
+
+      // Set default dates
+      window.onload = () => {
+        document.getElementById("txn-date").valueAsDate = new Date();
+        document.getElementById("goal-date").valueAsDate = new Date();
+      };
+    </script>
+  </body>
+</html>
